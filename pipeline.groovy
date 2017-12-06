@@ -13,9 +13,9 @@ node('maven') {
    	
    	def version = version()
       
-   	stage ('Static Ananlysis') {
-   		sh "${mvnCmd} org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=http://sonarqube:9000/ -DskipTests=true"
-   	}
+//   	stage ('Static Ananlysis') {
+//   		sh "${mvnCmd} org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=http://sonarqube:9000/ -DskipTests=true"
+//   	}
    
  //  	stage ('Push to Nexus') {
  //  		sh "${mvnCmd} deploy -DskipTests=true"
