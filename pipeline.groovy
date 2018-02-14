@@ -1,52 +1,35 @@
 node('maven') {
+	def APP_NAME = "report-config-server"
    	// define commands
    	def mvnCmd = "mvn -s configuration/maven-cicd-settings.xml"
+   	def CICD_PROJECT = "reportengine-cicd"
    	def DEV_PROJECT = "reportengine-dev"
-   	def IT_PROJECT = "reportengine-it"
+   	def QA_PROJECT = "reportengine-qa"
+   	def PROD_PROJECT = "reportengine-prod"
    	def PORT = 8080
-   	def APP_NAME = "report-config-server"
-
+   	def GIT_URL = "https://github.com/vargadan/${APP_NAME}.git"
+   	def SKIP_TEST = "true"
+ 
    	stage ('Build') {
-   		git branch: 'master', url: 'https://github.com/vargadan/report-config-server.git'
-   		sh "${mvnCmd} clean package -DskipTests=true"
+   		git branch: 'master', url: "${GIT_URL}"
+   		sh "${mvnCmd} clean package -DskipTests=${SKIP_TEST} fabric8:build"
    	}
    	
    	def version = version()
-      
-//   	stage ('Static Ananlysis') {
-//   		sh "${mvnCmd} org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=http://sonarqube:9000/ -DskipTests=true"
-//   	}
-   
- //  	stage ('Push to Nexus') {
- //  		sh "${mvnCmd} deploy -DskipTests=true"
- //  	}
-
-   	stage ('Deploy DEV') {
-	   // clean up. keep the image stream
-	   sh "oc project ${DEV_PROJECT}"
-	   sh "oc delete buildconfigs,deploymentconfigs,services,routes -l app=${APP_NAME} -n ${DEV_PROJECT}"
-	   // create build. override the exit code since it complains about exising imagestream
-	   sh "${mvnCmd} fabric8:deploy -DskipTests"
+   	
+	stage ('Deploy') {
+	   	// create build. override the exit code since it complains about exising imagestream
+	   	//tag for version in CICD imagestream
+	   	sh "oc tag ${CICD_PROJECT}/${APP_NAME}:latest ${CICD_PROJECT}/${APP_NAME}:${version}"
+		envSetup(CICD_PROJECT, APP_NAME, 'latest')
 	}
 
-   stage ('Deploy IT') {
-     	timeout(time:5, unit:'MINUTES') {
-        		input message: "Promote to IT?", ok: "Promote"
-        }
-	   sh "oc project ${IT_PROJECT}"
-	   // tag for stage
-	   sh "oc tag ${DEV_PROJECT}/${APP_NAME}:latest ${IT_PROJECT}/${APP_NAME}:${version}"
-	   // clean up. keep the imagestream
-	   sh "oc delete buildconfigs,deploymentconfigs,services,routes -l app=${APP_NAME} -n ${IT_PROJECT}"
-	   // deploy stage image
-	   sh "oc new-app ${APP_NAME}:${version} -n ${IT_PROJECT}" 
-	   // delete service and route because new-app created them with wrong port
-	   sh "oc delete svc,route -l app=${APP_NAME} -n ${IT_PROJECT}"
-	   // create service with the right port 
-	   sh "oc expose dc ${APP_NAME} --port=${PORT}"
-	   // create route with the right port
-	   sh "oc expose svc ${APP_NAME}"
-	}
+}
+
+def envSetup(project, appName, version) {
+	sh "oc delete buildconfig,deploymentconfig,service,routes -l app=${appName} -n ${project}"
+   	sh "oc new-app ${appName}:${version} -n ${project}"
+   	sh "oc expose svc ${appName} -n ${project}"
 }
 
 def version() {
