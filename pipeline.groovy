@@ -4,7 +4,7 @@ node('maven') {
    	def mvnCmd = "mvn -s configuration/maven-cicd-settings.xml"
    	def CICD_PROJECT = "ctr-cicd"
    	def DEV_PROJECT = "ctr-dev"
-   	def QA_PROJECT = "ctr-it"
+   	def IT_PROJECT = "ctr-it"
    	def PROD_PROJECT = "ctr-prod"
    	def PORT = 8080
    	def GIT_URL = "https://github.com/vargadan/${APP_NAME}.git"
@@ -56,8 +56,8 @@ def envSetup(project, appName, version, port, recreate) {
 	//now we can create the app since it has either been deleted or it did not exist at all
  	sh "oc new-app ${appName}:${version} -n ${project}"
    	sh "oc delete service,routes -l app=${appName} -n ${project}"
-   	sh "oc create service clusterip {appName} --tcp=${port}:${port} -n ${project}"
-   	sh "oc expose service {appName} -n ${project}"	
+   	sh "oc create service clusterip ${appName} --tcp=${port}:${port} -n ${project}"
+   	sh "oc expose service ${appName} -n ${project}"	
 }
 
 def version() {
